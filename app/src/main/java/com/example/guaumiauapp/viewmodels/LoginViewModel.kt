@@ -1,23 +1,28 @@
 package com.example.guaumiauapp.viewmodels
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel // <-- CAMBIO IMPORTANTE
+import androidx.lifecycle.viewModelScope
+import com.example.guaumiauapp.data.UserRepository // <-- AHORA EXISTE
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+// import kotlinx.coroutines.delay // Ya no es necesario
 
-/**
- * Estado de la UI para la pantalla de Login.
- */
 data class LoginUiState(
     val email: String = "",
     val pass: String = "",
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val loginSuccess: Boolean = false,
+    val isLoading: Boolean = false
 )
 
-/**
- * ViewModel que maneja la lógica de la pantalla de Login.
- */
-class LoginViewModel : ViewModel() {
+// CAMBIO: Hereda de AndroidViewModel para tener 'application' (contexto)
+class LoginViewModel(application: Application) : AndroidViewModel(application) {
+
+    // Inicializa el repositorio real
+    private val repository = UserRepository(application)
 
     private val _uiState = MutableStateFlow(LoginUiState())
     val uiState = _uiState.asStateFlow()
@@ -30,19 +35,29 @@ class LoginViewModel : ViewModel() {
         _uiState.update { it.copy(pass = pass, errorMessage = null) }
     }
 
-    /**
-     * Valida las credenciales del usuario.
-     * En una app real, aquí se consultaría una base de datos o API.
-     * Para este ejemplo, usaremos datos fijos.
-     * @return `true` si el login es exitoso, `false` si no.
-     */
-    fun validateLogin(): Boolean {
-        if (_uiState.value.email == "usuario@duoc.cl" && _uiState.value.pass == "Duoc123@") {
-            _uiState.update { it.copy(errorMessage = null) }
-            return true
-        } else {
-            _uiState.update { it.copy(errorMessage = "Usuario o contraseña incorrectos.") }
-            return false
+    fun validateLogin() {
+        _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+
+        viewModelScope.launch {
+            // delay(1000) // Opcional si quieres que la carga dure más
+            val state = _uiState.value
+
+            // CAMBIO: Llama al repositorio real (que es 'suspend')
+            val user = repository.findUserByCredentials(state.email, state.pass)
+
+            if (user != null) {
+                _uiState.update { it.copy(isLoading = false, loginSuccess = true) }
+            } else {
+                _uiState.update { it.copy(
+                    isLoading = false,
+                    errorMessage = "Usuario o contraseña incorrectos.",
+                    loginSuccess = false
+                )}
+            }
         }
+    }
+
+    fun onLoginHandled() {
+        _uiState.update { it.copy(loginSuccess = false) }
     }
 }

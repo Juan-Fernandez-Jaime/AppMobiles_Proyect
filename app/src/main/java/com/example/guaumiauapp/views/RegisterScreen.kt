@@ -1,13 +1,7 @@
 package com.example.guaumiauapp.views
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import android.widget.Toast
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
@@ -23,7 +17,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.guaumiauapp.components.PetFormComponent
 import com.example.guaumiauapp.viewmodels.RegisterViewModel
-import android.widget.Toast
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,6 +26,16 @@ fun RegisterScreen(
 ) {
     val uiState by vm.uiState.collectAsState()
     val context = LocalContext.current
+
+    // --- CAMBIO: Observador de éxito ---
+    // Se ejecuta cuando uiState.registrationSuccess cambia a true
+    LaunchedEffect(uiState.registrationSuccess) {
+        if (uiState.registrationSuccess) {
+            Toast.makeText(context, "Registro exitoso", Toast.LENGTH_SHORT).show()
+            navController.popBackStack() // Volver al Login
+            vm.onRegistrationHandled() // Resetea el estado
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -127,12 +130,8 @@ fun RegisterScreen(
                 Spacer(modifier = Modifier.height(24.dp))
                 Button(
                     onClick = {
-                        if (vm.validate()) {
-                            Toast.makeText(context, "Registro exitoso", Toast.LENGTH_SHORT).show()
-                            navController.popBackStack() // Volver al Login
-                        } else {
-                            Toast.makeText(context, "Por favor, corrige los errores", Toast.LENGTH_SHORT).show()
-                        }
+                        // CAMBIO: Ahora solo llama a esta función
+                        vm.validateAndRegister()
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {
